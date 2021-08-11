@@ -92,7 +92,7 @@ func summarize(s string, heading string) string {
 			collecting := false
 			for scanner.Scan() {
 				line := scanner.Text()
-				// "今日のGJ"を抽出してファイルに書き込む ただし見出しの代わりに日付のh2が欲しい
+				// "今日のGJ"を抽出してファイルに書き込む ただし見出しは日付h2で置換
 				// 今日のGJでないh2見出しがきたら集計停止
 				if strings.HasPrefix(line, headings[1]) ||
 					strings.HasPrefix(line, headings[2]) {
@@ -103,7 +103,7 @@ func summarize(s string, heading string) string {
 				}
 				if line == headings[2]+heading {
 					collecting = true
-					// "docs/2021/08/03.md" → "# 2021/08/03
+					// "docs/2021/08/03.md" → "## 2021/08/03
 					h, _ := filepath.Rel(READDIR, path)
 					h = strings.TrimSuffix(h, ".md")
 					s += headings[2] + h + LF
