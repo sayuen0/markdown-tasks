@@ -8,31 +8,74 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/c-bata/go-prompt"
 )
 
 //const READDIR = "./private/diary"
 
 const (
-	READDIR = "docs"
+	READDIR  = "docs"
 	WRITEDIR = "dist"
-	LF      = "\n"
+	LF       = "\n"
 )
 
+var headings = map[int]string{
+	1: "# ",
+	2: "## ",
+	3: "### ",
+	4: "#### ",
+	5: "##### ",
+	6: "######",
+}
 
-var headingPrefixes = map[string]string{
-	"H1": "# ",
-	"H2": "## ",
-	"H3": "### ",
-	"H4": "#### ",
-	"H5": "##### ",
-	"H6": "######",
+var promptSuggests = []string{
+	"今日のGJ",
+	"今日の伸びしろ",
+}
+
+func contains(s string, slice []string) bool {
+	for _, a := range slice {
+		if strings.TrimSpace(s) == a {
+			return true
+		}
+	}
+	return false
+}
+
+func completer(in prompt.Document) []prompt.Suggest {
+	s := make([]prompt.Suggest, 0, len(promptSuggests))
+	for _, suggest := range promptSuggests {
+		s = append(s, prompt.Suggest{Text: suggest})
+	}
+	return prompt.FilterHasSuffix(s, in.GetWordBeforeCursor(), true)
 }
 
 func main() {
-	// 指定ディレクトリ以下のファイルを開いてテキストを全部保存をする
-	//buf := make([]byte, 0)
-	const heading = "今日のGJ"
-	s := headingPrefixes["H1"] + heading + LF
+	// input
+	in := prompt.Input(">>>", completer, prompt.OptionTitle("集計項目"))
+	fmt.Println(in)
+	if !contains(in, promptSuggests) {
+		fmt.Println("invalid input")
+		return
+	}
+
+	// summarize text
+	s := headings[1] + in + LF
+	s = summarize(s, in)
+
+	// write summary
+	newFile, err := os.Create(filepath.Join(WRITEDIR, in + ".md"))
+	if err != nil {
+		panic(err)
+	}
+	defer newFile.Close()
+	if _, err := newFile.WriteString(s); err != nil {
+		panic(err)
+	}
+}
+
+func summarize(s string, heading string) string {
 	if err := filepath.Walk(READDIR, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -51,19 +94,19 @@ func main() {
 				line := scanner.Text()
 				// "今日のGJ"を抽出してファイルに書き込む ただし見出しの代わりに日付のh2が欲しい
 				// 今日のGJでないh2見出しがきたら集計停止
-				if strings.HasPrefix(line, headingPrefixes["H1"]) ||
-					strings.HasPrefix(line, headingPrefixes["H2"]) {
+				if strings.HasPrefix(line, headings[1]) ||
+					strings.HasPrefix(line, headings[2]) {
 					collecting = false
 				}
 				if collecting {
 					s += line + LF
 				}
-				if line == headingPrefixes["H2"] + heading {
+				if line == headings[2]+heading {
 					collecting = true
 					// "docs/2021/08/03.md" → "# 2021/08/03
 					h, _ := filepath.Rel(READDIR, path)
 					h = strings.TrimSuffix(h, ".md")
-					s += headingPrefixes["H2"] + h + LF
+					s += headings[2] + h + LF
 				}
 			}
 		}
@@ -71,14 +114,7 @@ func main() {
 	}); err != nil {
 		panic(err)
 	}
-	newFile, err := os.Create(filepath.Join(WRITEDIR, "fuga.md"))
-	if err != nil {
-		panic(err)
-	}
-	defer newFile.Close()
-	if _, err := newFile.WriteString(s); err != nil {
-		panic(err)
-	}
+	return s
 }
 
 var r = regexp.MustCompile("[0-2][0-9].md")
