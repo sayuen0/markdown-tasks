@@ -8,15 +8,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
-	"github.com/c-bata/go-prompt"
+	"github.com/manifoldco/promptui"
 )
 
-//const READDIR = "./private/diary"
-
-const (
-	READDIR  = "docs"
-	WRITEDIR = "dist"
+var (
+	ROOT, READDIR, WRITEDIR string
 	LF       = "\n"
 )
 
@@ -30,34 +28,31 @@ var headings = map[int]string{
 }
 
 var promptSuggests = []string{
+	"今日の発見",
+	"今日の感謝",
 	"今日のGJ",
 	"今日の伸びしろ",
 }
 
-func contains(s string, slice []string) bool {
-	for _, a := range slice {
-		if strings.TrimSpace(s) == a {
-			return true
-		}
-	}
-	return false
-}
-
-func completer(in prompt.Document) []prompt.Suggest {
-	s := make([]prompt.Suggest, 0, len(promptSuggests))
-	for _, suggest := range promptSuggests {
-		s = append(s, prompt.Suggest{Text: suggest})
-	}
-	return prompt.FilterHasSuffix(s, in.GetWordBeforeCursor(), true)
-}
-
 func main() {
+	homedir, err := os.UserHomeDir()
+	if err != nil{
+		panic(err)
+	}
+	fmt.Println(homedir)
+	ROOT     = filepath.Join(homedir, "markdowns")
+	READDIR  = filepath.Join(ROOT, "private", "diary")
+	WRITEDIR = filepath.Join(ROOT, "private", "dist")
+
 	// input
-	in := prompt.Input(">>>", completer, prompt.OptionTitle("集計項目"))
-	fmt.Println(in)
-	if !contains(in, promptSuggests) {
-		fmt.Println("invalid input")
-		return
+	prompt := promptui.Select{
+		Label: "集計項目を選択",
+		Items: promptSuggests,
+	}
+
+	_, in, err := prompt.Run()
+	if err != nil {
+		panic(err)
 	}
 
 	// summarize text
@@ -65,10 +60,13 @@ func main() {
 	s = summarize(s, in)
 
 	// write summary
-	newFile, err := os.Create(filepath.Join(WRITEDIR, in + ".md"))
+	timestamp := time.Now().Format("20060102150405")
+	newFilePath := filepath.Join(WRITEDIR, timestamp+"_"+in+".md")
+	newFile, err := os.Create(newFilePath)
 	if err != nil {
 		panic(err)
 	}
+
 	defer newFile.Close()
 	if _, err := newFile.WriteString(s); err != nil {
 		panic(err)
@@ -112,7 +110,7 @@ func summarize(s string, heading string) string {
 		}
 		return nil
 	}); err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 	return s
 }
@@ -122,27 +120,4 @@ var r = regexp.MustCompile("[0-2][0-9].md")
 func isTargetMarkdown(info fs.FileInfo) bool {
 	name := info.Name()
 	return filepath.Ext(name) == ".md" && r.MatchString(name)
-}
-
-func copyFile() {
-	f, err := os.Open(filepath.Join(READDIR, "hoge.md"))
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-
-	// 書き込み対象ファイル
-	newFile, err := os.Create(filepath.Join(READDIR, "fuga.md"))
-	defer newFile.Close()
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		s := scanner.Text()
-		s = strings.Replace(s, "2", "4", -1)
-		if _, err := newFile.WriteString(s + "\n"); err != nil {
-			panic(err)
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		panic(err)
-	}
 }
