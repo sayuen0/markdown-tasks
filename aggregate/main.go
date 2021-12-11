@@ -62,6 +62,7 @@ func main() {
 	// write summary
 	timestamp := time.Now().Format("20060102150405")
 	newFilePath := filepath.Join(WRITEDIR, timestamp+"_"+in+".md")
+	fmt.Println(newFilePath)
 	newFile, err := os.Create(newFilePath)
 	if err != nil {
 		panic(err)
