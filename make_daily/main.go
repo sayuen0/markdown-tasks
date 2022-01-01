@@ -173,7 +173,8 @@ func RemoveDoneTasks(tasks string) string {
 func ExtractTask(report string) (string, error) {
 	tasks := make([]string, 0)
 	reading := false
-	for _, line := range strings.Split(strings.TrimSuffix(report, "\n"), "\n") {
+	lines := strings.Split(strings.TrimSuffix(report, "\n"), "\n")
+	for _, line := range lines {
 		if reading {
 			if strings.Index(strings.TrimSpace(line), "# ") == 0 {
 				break
@@ -192,15 +193,13 @@ func ExtractTask(report string) (string, error) {
 
 func DiaryTemplate(date time.Time) string {
 	dateF := weekdayja.Replace(date.Format("2006年01月02日(Mon)"))
-
-	return fmt.Sprintf(`%s
-%s
-%s`, dateF, TASK_HEADING, `%s
+	bodyTemplate := `%s
 # 作業ログ
 # 呟き場
 ## 今日の発見
 ## 今日の感謝
 ## 今日のGJ
 ## 今日の伸びしろ 
-`)
+`
+	return fmt.Sprintf("%s\n%s\n%s", dateF, TASK_HEADING, bodyTemplate)
 }
