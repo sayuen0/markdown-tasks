@@ -36,7 +36,8 @@ func Test_makeFilepathFromDate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := makeFilepathFromDate(tt.args.date); got != tt.want {
+			got := makeFilepathFromDate(tt.args.date)
+			if got != tt.want {
 				t.Errorf("makeFilepathFromDate() = %v, want %v", got, tt.want)
 			}
 		})
@@ -44,18 +45,20 @@ func Test_makeFilepathFromDate(t *testing.T) {
 }
 
 func Test_getLastDateFile(t *testing.T) {
+	basePath := "./diary"
 	tests := []struct {
-		name string
-		want string
+		name     string
+		basePath string
+		want     string
 	}{
 		{
 			name: "",
-			want: "2021/12/10.md",
+			want: "2021/12/11.md",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := getLastDateFile(); got != tt.want {
+			if got := getLastDateFile(basePath); got != tt.want {
 				t.Errorf("getLastDateFile() = %v, want %v", got, tt.want)
 			}
 		})

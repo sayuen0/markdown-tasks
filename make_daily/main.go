@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -41,8 +42,17 @@ func main() {
 			fmt.Println("Recover: ", err, string(debug.Stack()))
 		}
 	}()
+
+	if len(os.Args) > 1 { // 1st arg is self binary name
+		flag.Parse()
+		basePath := flag.Args()[0]
+		if basePath != "" {
+			BASE_PATH = basePath
+		}
+	}
+
 	// read last
-	lastPath := getLastDateFile()
+	lastPath := getLastDateFile(BASE_PATH)
 	if lastPath == "" {
 		panic(errors.New("no files"))
 	}
@@ -52,9 +62,18 @@ func main() {
 		panic(err)
 	}
 
+	// mkdir if not exists
+	year := time.Now().Year()
+	month := time.Now().Month()
+	dir := filepath.Join(BASE_PATH, strconv.Itoa(year), strconv.Itoa(int(month)))
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		panic(err)
+	}
+
 	// check today
 	today := time.Now()
-	todayPath := filepath.Join(BASE_PATH, makeFilepathFromDate(today))
+	filePath := makeFilepathFromDate(today)
+	todayPath := filepath.Join(BASE_PATH, filePath)
 	exists, err := Exists(todayPath)
 	if err != nil {
 		panic(err)
@@ -81,25 +100,26 @@ func main() {
 func makeFilepathFromDate(date time.Time) string {
 	year := date.Year()
 	month := date.Month()
+
 	day := date.Day()
 	return fmt.Sprintf("%s.md", filepath.Join(strconv.Itoa(year), strconv.Itoa(int(month)), strconv.Itoa(day)))
 }
 
 var fileRegex = regexp.MustCompile(`\d{4}/\d{1,2}/\d{1,2}\.md`)
 
-func getLastDateFile() string {
+func getLastDateFile(basePath string) string {
 	lastPath := ""
 	lastDate := time.Unix(0, 0).UTC()
-	err := filepath.Walk(BASE_PATH, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
 		}
-		rel, err := filepath.Rel(BASE_PATH, path)
+		rel, err := filepath.Rel(basePath, path)
 		if err != nil {
 			return err
 		}
 		// skip invalid format file name
-		if !fileRegex.MatchString(rel){
+		if !fileRegex.MatchString(rel) {
 			return nil
 		}
 
@@ -109,7 +129,7 @@ func getLastDateFile() string {
 			return err
 		}
 
-		if fileDate.IsZero(){
+		if fileDate.IsZero() {
 			return nil
 		}
 
