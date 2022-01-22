@@ -25,7 +25,8 @@ var weekdayja = strings.NewReplacer(
 )
 
 var BASE_PATH = filepath.Join(GetHomeDir(), "markdowns/private/diary")
-var TASK_HEADING = "# 今日のタスク"
+
+const TASK_HEADING = "# 今日のタスク"
 
 func GetHomeDir() string {
 	dirname, err := os.UserHomeDir()
@@ -83,6 +84,11 @@ func main() {
 		return
 	}
 
+	// if today file is created(today's first run), set last file permission to readonly
+	if err := os.Chmod(filepath.Join(BASE_PATH, lastPath), 0400); err != nil {
+		panic(err)
+	}
+
 	// create today's content
 	lc := string(lastContent)
 	taskStr, err := ExtractTask(lc)
@@ -91,7 +97,7 @@ func main() {
 	}
 	undoneTasks := RemoveDoneTasks(taskStr)
 	todayContent := fmt.Sprintf(DiaryTemplate(today), undoneTasks)
-	if err := ioutil.WriteFile(todayPath, []byte(todayContent), os.ModePerm); err != nil {
+	if err := ioutil.WriteFile(todayPath, []byte(todayContent), 0600); err != nil {
 		panic(err)
 	}
 	fmt.Printf("created new file: %s \n", todayPath)
