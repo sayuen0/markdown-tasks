@@ -202,10 +202,6 @@ func DiaryTemplate(date time.Time) string {
 	bodyTemplate := `%s
 # 作業ログ
 # 呟き場
-## 今日の発見
-## 今日の感謝
-## 今日のGJ
-## 今日の伸びしろ 
 `
 	return fmt.Sprintf("%s\n%s\n%s", dateF, TASK_HEADING, bodyTemplate)
 }
