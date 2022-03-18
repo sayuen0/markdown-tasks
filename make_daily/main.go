@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/atotto/clipboard"
 )
 
 var weekdayja = strings.NewReplacer(
@@ -74,6 +76,9 @@ func main() {
 	// check today
 	today := time.Now()
 	filePath := makeFilepathFromDate(today)
+	copyToClipboard(getFileNameWithoutExt(filePath))
+	fmt.Println("copied to clipboard: ", getFileNameWithoutExt(filePath))
+
 	todayPath := filepath.Join(BASE_PATH, filePath)
 	exists, err := Exists(todayPath)
 	if err != nil {
@@ -204,4 +209,13 @@ func DiaryTemplate(date time.Time) string {
 # 呟き場
 `
 	return fmt.Sprintf("%s\n%s\n%s", dateF, TASK_HEADING, bodyTemplate)
+}
+
+func copyToClipboard(s string) {
+	clipboard.WriteAll(s)
+}
+
+func getFileNameWithoutExt(fileName string) string {
+	ext := filepath.Ext(fileName)
+	return strings.TrimSuffix(fileName, ext)
 }
