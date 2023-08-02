@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	_ "embed"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
@@ -15,7 +17,7 @@ import (
 
 var (
 	ROOT, READDIR, WRITEDIR string
-	LF       = "\n"
+	LF                      = "\n"
 )
 
 var headings = map[int]string{
@@ -27,27 +29,27 @@ var headings = map[int]string{
 	6: "######",
 }
 
-var promptSuggests = []string{
-	"今日の発見",
-	"今日の感謝",
-	"今日のGJ",
-	"今日の伸びしろ",
-}
+//go:embed promptSuggests.json
+var promptSuggests []byte
 
 func main() {
 	homedir, err := os.UserHomeDir()
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 	fmt.Println(homedir)
-	ROOT     = filepath.Join(homedir, "markdowns")
-	READDIR  = filepath.Join(ROOT, "private", "diary")
-	WRITEDIR = filepath.Join(ROOT, "private", "dist")
+	ROOT = filepath.Join(homedir, "markdowns")
+	READDIR = filepath.Join(ROOT, "private", "diary")
+	WRITEDIR = filepath.Join(ROOT, "private", "diary", "dist")
 
 	// input
+	var suggests []string
+	if err := json.Unmarshal(promptSuggests, &suggests); err != nil {
+		panic(err)
+	}
 	prompt := promptui.Select{
 		Label: "集計項目を選択",
-		Items: promptSuggests,
+		Items: suggests,
 	}
 
 	_, in, err := prompt.Run()
@@ -102,9 +104,12 @@ func summarize(s string, heading string) string {
 				}
 				if line == headings[2]+heading {
 					collecting = true
-					// "docs/2021/08/03.md" → "## 2021/08/03
+					// "docs/2021/08/03.md" → "## 2021-08-03(火)"
+					// "docs/2021-08-03.md" → "## 2021-08-03(火)"
 					h, _ := filepath.Rel(READDIR, path)
 					h = strings.TrimSuffix(h, ".md")
+					week, _ := getDayOfWeekChar(h, "2006-01-02")
+					h += fmt.Sprintf("(%s)", week)
 					s += headings[2] + h + LF
 				}
 			}
